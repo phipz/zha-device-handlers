@@ -17,15 +17,9 @@
 #   manufacturer_code=None
 #   value=0/1
 #
-# Therefore this quirk changes the attribute definition to types.uint8_t and
-# removes is_manufacturer_specific=True. The cluster remains manufacturer-
-# specific, but the attribute report itself is not manufacturer-coded.
-#
-# Additionally, live tamper reports were received and decoded by ZHA but did not
-# reliably update the binary sensor state. handle_cluster_general_request()
-# catches Report Attributes command 0x0A for attribute 0x2000 and updates the
-# attribute cache with the actual reported 0/1 value, so live tamper changes
-# update immediately without double-processing the report.
+# Therefore this quirk defines the attribute as types.uint8_t with
+# manufacturer_code=None. The cluster remains manufacturer-specific, but the
+# attribute itself is not manufacturer-coded.
 
 from zigpy import types
 from zigpy.quirks import CustomCluster
@@ -61,17 +55,8 @@ class SonoffContactCluster(CustomCluster):
             id=0x2000,
             type=types.uint8_t,
             access="rp",
+            manufacturer_code=None,
         )
-
-    def handle_cluster_general_request(self, hdr, args, *extra, **kwargs):
-        """Handle reported tamper attribute updates."""
-        if hdr.command_id == 0x0A:  # Report Attributes
-            for attr in getattr(args, "attribute_reports", []):
-                if attr.attrid == self.AttributeDefs.tamper.id:
-                    self._update_attribute(attr.attrid, int(attr.value.value))
-                    return
-
-        super().handle_cluster_general_request(hdr, args, *extra, **kwargs)
 
 
 (
